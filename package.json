@@ -1,10 +1,14 @@
 {
-  "name": "@org/source",
+  "name": "@albugowy15/streamforge",
   "version": "0.0.0",
   "license": "MIT",
-  "scripts": {},
+  "scripts": {
+    "dev": "nx run-many --targets dev",
+    "build": "nx run-many --targets build",
+    "preview": "nx run-many --targets preview",
+    "test": "nx run-many --targets test"
+  },
   "private": true,
-  "dependencies": {},
   "devDependencies": {
     "@nx/js": "22.7.0",
     "@swc-node/register": "1.11.1",
@@ -14,5 +18,13 @@
     "prettier": "^3.8.1",
     "tslib": "^2.3.0",
     "typescript": "~5.9.2"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "lightningcss",
+      "nx",
+      "unrs-resolver"
+    ]
   }
 }
