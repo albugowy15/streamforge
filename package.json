@@ -6,21 +6,24 @@
     "dev": "nx run-many --targets dev",
     "build": "nx run-many --targets build",
     "preview": "nx run-many --targets preview",
-    "test": "nx run-many --targets test"
+    "test": "nx run-many --targets test",
+    "format": "nx run-many --targets format",
+    "lint": "nx run-many --targets lint"
   },
   "private": true,
   "devDependencies": {
-    "@nx/js": "22.7.0",
+    "@nx/js": "22.7.1",
     "@swc-node/register": "1.11.1",
-    "@swc/core": "1.15.8",
-    "@swc/helpers": "0.5.18",
-    "nx": "22.7.0",
+    "@swc/core": "1.15.33",
+    "@swc/helpers": "0.5.21",
+    "nx": "22.7.1",
     "prettier": "^3.8.1",
     "tslib": "^2.3.0",
-    "typescript": "~5.9.2"
+    "typescript": "~6.0.3"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "@swc/core",
       "esbuild",
       "lightningcss",
       "nx",
