@@ -6,6 +6,7 @@
     "dev": "nx run-many -t dev",
     "build": "nx run-many -t build",
     "preview": "nx run-many -t preview",
+    "start": "nx run-many -t start",
     "test": "nx run-many -t test",
     "format": "nx run-many -t format",
     "lint": "nx run-many -t lint",

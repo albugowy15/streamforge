@@ -1,0 +1,74 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: ./apps/api/Dockerfile
+    image: streamforge/api
+    restart: unless-stopped
+    ports:
+      - 5000:5000
+    networks:
+      - backend
+      - frontend
+
+  web:
+    build:
+      context: .
+      dockerfile: ./apps/web/Dockerfile
+    image: streamforge/web
+    restart: unless-stopped
+    ports:
+      - 3000:3000
+    networks:
+      - frontend
+
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    shm_size: 128mb
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: streamforge
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    networks:
+      - backend
+
+  redis:
+    image: redis:8.6.3
+    restart: unless-stopped
+    command: >
+      redis-server
+      --save 60 1
+      --loglevel warning
+    ports:
+      - 6379:6379
+    volumes:
+      - redis_data:/data
+    networks:
+      - backend
+
+  rustfs:
+    image: rustfs/rustfs:latest
+    restart: unless-stopped
+    ports:
+      - 9000:9000
+    volumes:
+      - rustfs_data:/data
+    networks:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:
+  rustfs_data:
+  rustfs_logs:
+
+networks:
+  backend:
+    driver: bridge
+  frontend:
+    driver: bridge
