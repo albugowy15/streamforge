@@ -26,5 +26,9 @@
     "test": { "cache": true },
     "lint": { "cache": true }
   },
+  "tui": {
+    "enabled": true,
+    "autoExit": true
+  },
   "analytics": false
 }

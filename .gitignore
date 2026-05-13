@@ -4,6 +4,7 @@
 dist
 tmp
 out-tsc
+tsconfig.tsbuildinfo
 
 # dependencies
 node_modules
@@ -47,3 +48,8 @@ Thumbs.db
 .claude/settings.local.json
 .nx/polygraph
 .nx/self-healing
+
+# Rust
+target/
+**/*.rs.bk
+*.pdb
