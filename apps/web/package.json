@@ -5,11 +5,11 @@
   "scripts": {
     "dev": "vite dev --port 3000",
     "typecheck": "tsc --noEmit",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && eslint && vite build",
     "preview": "vite preview",
-    "start": "node .output/server/index.mjs",
     "test": "vitest run",
     "lint": "eslint",
+    "lint:fix": "eslint --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },

@@ -2,6 +2,7 @@ FROM node:22 AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV CI=true
+ENV NODE_ENV=production
 RUN corepack enable
 
 FROM base AS build

@@ -1,7 +1,4 @@
-use axum::{
-    routing::get,
-    Json, Router,
-};
+use axum::{Json, Router, routing::get};
 use serde::Serialize;
 use std::net::SocketAddr;
 
@@ -14,8 +11,7 @@ struct HealthResponse {
 #[tokio::main]
 async fn main() {
     // build our application with a route
-    let app = Router::new()
-        .route("/health", get(health_handler));
+    let app = Router::new().route("/health", get(health_handler));
 
     // run it with hyper on localhost:5000
     let addr = SocketAddr::from(([0, 0, 0, 0], 5000));

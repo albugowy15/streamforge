@@ -253,8 +253,6 @@ function FileUploaderItem({
   const { files } = useFileUploader()
   const file = files[index]
 
-  if (!file) return null
-
   return (
     <FileUploaderItemContext.Provider value={{ file, index }}>
       <li

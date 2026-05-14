@@ -37,6 +37,20 @@
         "command": "cargo clippy -- -D warnings",
         "cwd": "apps/api"
       }
+    },
+    "format": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cargo fmt",
+        "cwd": "apps/api"
+      }
+    },
+    "format:check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "cargo fmt --check",
+        "cwd": "apps/api"
+      }
     }
   }
 }

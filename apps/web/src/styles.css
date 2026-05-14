@@ -115,52 +115,6 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
-@layer utilities {
-  .text-h1 {
-    @apply text-4xl font-extrabold tracking-tight text-balance;
-  }
-
-  .text-h2 {
-    @apply pb-2 text-3xl font-semibold tracking-tight first:mt-0;
-  }
-
-  .text-h3 {
-    @apply text-2xl font-semibold tracking-tight;
-  }
-
-  .text-h4 {
-    @apply text-xl font-semibold tracking-tight;
-  }
-
-  .text-p {
-    @apply leading-7;
-  }
-
-  .blockquote {
-    @apply mt-6 border-l-2 pl-6 italic;
-  }
-
-  .code {
-    @apply relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm font-semibold;
-  }
-
-  .text-lead {
-    @apply text-xl text-muted-foreground;
-  }
-
-  .text-large {
-    @apply text-lg font-semibold;
-  }
-
-  .text-small {
-    @apply text-sm leading-none font-medium;
-  }
-
-  .text-muted {
-    @apply text-sm text-muted-foreground;
-  }
-}
-
 @layer base {
   * {
     @apply border-border outline-ring/50;
