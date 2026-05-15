@@ -5,6 +5,8 @@ services:
       dockerfile: ./apps/api/Dockerfile
     image: streamforge/api
     restart: unless-stopped
+    env_file:
+      - ./apps/api/.env
     ports:
       - 5000:5000
     networks:
