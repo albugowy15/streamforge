@@ -1,7 +1,7 @@
 use crate::modules::books::models::Book;
 use async_trait::async_trait;
 use chrono::NaiveDate;
-use sqlx::{FromRow, PgPool};
+use sqlx::{FromRow, Pool, Postgres};
 
 #[async_trait]
 pub trait BookRepository: Send + Sync {
@@ -36,12 +36,12 @@ impl From<BookRow> for Book {
 }
 
 pub struct PostgresBookRepository {
-    pool: PgPool,
+    db: Pool<Postgres>,
 }
 
 impl PostgresBookRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
+    pub fn new(db: Pool<Postgres>) -> Self {
+        Self { db }
     }
 }
 
@@ -60,7 +60,7 @@ impl BookRepository for PostgresBookRepository {
         .bind(&book.publishers)
         .bind(book.date_published)
         .bind(book.abstract_text)
-        .fetch_one(&self.pool)
+        .fetch_one(&self.db)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -76,7 +76,7 @@ impl BookRepository for PostgresBookRepository {
             "#,
         )
         .bind(id)
-        .fetch_optional(&self.pool)
+        .fetch_optional(&self.db)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -101,7 +101,7 @@ impl BookRepository for PostgresBookRepository {
         .bind(book.date_published)
         .bind(book.abstract_text)
         .bind(id)
-        .fetch_one(&self.pool)
+        .fetch_one(&self.db)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -116,7 +116,7 @@ impl BookRepository for PostgresBookRepository {
             "#,
         )
         .bind(id)
-        .execute(&self.pool)
+        .execute(&self.db)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -130,7 +130,7 @@ impl BookRepository for PostgresBookRepository {
             FROM books
             "#,
         )
-        .fetch_all(&self.pool)
+        .fetch_all(&self.db)
         .await
         .map_err(|e| e.to_string())?;
 

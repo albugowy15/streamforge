@@ -1,2 +1,3 @@
 pub mod app_state;
-pub mod postgres;
+
+pub(crate) use app_state::AppState;
