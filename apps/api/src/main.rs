@@ -1,5 +1,7 @@
+mod config;
 mod modules;
 mod shared;
+mod storage;
 
 use axum::Router;
 use axum::http::HeaderValue;
@@ -7,9 +9,9 @@ use axum::http::Method;
 use axum::http::StatusCode;
 use axum::http::header;
 use axum::response::IntoResponse;
+use axum::routing::get;
 use dotenvy::dotenv;
 use sqlx::migrate::Migrator;
-use sqlx::postgres::PgPoolOptions;
 use std::env;
 use std::path::Path;
 use std::sync::Arc;
@@ -22,6 +24,7 @@ use tower_http::trace::TraceLayer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 
+use crate::config::Config;
 use crate::modules::books::BookRouter;
 use crate::modules::books::BookService;
 use crate::modules::books::PostgresBookRepository;
@@ -30,6 +33,7 @@ use crate::shared::AppState;
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     dotenv().ok();
+    let config = Config::from_env()?;
 
     tracing_subscriber::registry()
         .with(
@@ -45,24 +49,32 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     tracing::debug!("start database connection");
-    let database_url = env::var("DATABASE_URL")?;
-    let db = PgPoolOptions::new()
-        .max_connections(10)
-        .acquire_timeout(Duration::from_secs(5))
-        .connect(&database_url)
-        .await?;
+    let db = Arc::new(storage::PostgresDatabase::new(&config).await?);
+
+    tracing::debug!("start s3 connection");
+    let s3 = Arc::new(storage::S3::new(&config).await);
+    let total_buckets = s3
+        .get_client()
+        .list_buckets()
+        .send()
+        .await?
+        .buckets
+        .iter()
+        .len();
+    tracing::debug!("found {:?} buckets", total_buckets);
 
     tracing::debug!("start database migrations");
     let migrator = Migrator::new(Path::new("./migrations")).await?;
-    migrator.run(&db).await?;
+    migrator.run(db.get_conn()).await?;
 
-    let book_repository = Arc::new(PostgresBookRepository::new(db));
+    let book_repository = Arc::new(PostgresBookRepository::new(db.clone(), s3.clone()));
     let book_service = BookService::new(book_repository);
 
     let app_state = Arc::new(AppState { book_service });
 
     let app = Router::new()
-        .nest("/books", BookRouter::new())
+        .route("/health", get(check_health))
+        .merge(BookRouter::new())
         .with_state(app_state)
         .layer((
             TraceLayer::new_for_http(),
@@ -90,6 +102,10 @@ async fn main() -> anyhow::Result<()> {
 
 async fn not_found_handler() -> impl IntoResponse {
     (StatusCode::NOT_FOUND, "nothing to see her")
+}
+
+async fn check_health() -> impl IntoResponse {
+    StatusCode::OK
 }
 
 async fn shutdown_signal() {

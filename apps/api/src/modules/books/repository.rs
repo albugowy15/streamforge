@@ -1,7 +1,12 @@
-use crate::modules::books::models::Book;
+use std::sync::Arc;
+
+use crate::{
+    modules::books::models::Book,
+    storage::{PostgresDatabase, S3},
+};
 use async_trait::async_trait;
 use chrono::NaiveDate;
-use sqlx::{FromRow, Pool, Postgres};
+use sqlx::FromRow;
 
 #[async_trait]
 pub trait BookRepository: Send + Sync {
@@ -36,12 +41,13 @@ impl From<BookRow> for Book {
 }
 
 pub struct PostgresBookRepository {
-    db: Pool<Postgres>,
+    db: Arc<PostgresDatabase>,
+    s3: Arc<S3>,
 }
 
 impl PostgresBookRepository {
-    pub fn new(db: Pool<Postgres>) -> Self {
-        Self { db }
+    pub fn new(db: Arc<PostgresDatabase>, s3: Arc<S3>) -> Self {
+        Self { db, s3 }
     }
 }
 
@@ -60,7 +66,7 @@ impl BookRepository for PostgresBookRepository {
         .bind(&book.publishers)
         .bind(book.date_published)
         .bind(book.abstract_text)
-        .fetch_one(&self.db)
+        .fetch_one(self.db.get_conn())
         .await
         .map_err(|e| e.to_string())?;
 
@@ -76,7 +82,7 @@ impl BookRepository for PostgresBookRepository {
             "#,
         )
         .bind(id)
-        .fetch_optional(&self.db)
+        .fetch_optional(self.db.get_conn())
         .await
         .map_err(|e| e.to_string())?;
 
@@ -101,7 +107,7 @@ impl BookRepository for PostgresBookRepository {
         .bind(book.date_published)
         .bind(book.abstract_text)
         .bind(id)
-        .fetch_one(&self.db)
+        .fetch_one(self.db.get_conn())
         .await
         .map_err(|e| e.to_string())?;
 
@@ -116,7 +122,7 @@ impl BookRepository for PostgresBookRepository {
             "#,
         )
         .bind(id)
-        .execute(&self.db)
+        .execute(self.db.get_conn())
         .await
         .map_err(|e| e.to_string())?;
 
@@ -130,7 +136,7 @@ impl BookRepository for PostgresBookRepository {
             FROM books
             "#,
         )
-        .fetch_all(&self.db)
+        .fetch_all(self.db.get_conn())
         .await
         .map_err(|e| e.to_string())?;
 
