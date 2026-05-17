@@ -54,17 +54,14 @@ function FileUploader({
   const [isDragging, setIsDragging] = React.useState(false)
 
   const files = valueProp ?? internalFiles
-  const setFiles = React.useCallback(
-    (newFiles: React.SetStateAction<File[]>) => {
-      const updatedFiles =
-        typeof newFiles === 'function' ? newFiles(files) : newFiles
-      if (!valueProp) {
-        setInternalFiles(updatedFiles)
-      }
-      onValueChange?.(updatedFiles)
-    },
-    [files, onValueChange, valueProp],
-  )
+  const setFiles = (newFiles: React.SetStateAction<File[]>) => {
+    const updatedFiles =
+      typeof newFiles === 'function' ? newFiles(files) : newFiles
+    if (!valueProp) {
+      setInternalFiles(updatedFiles)
+    }
+    onValueChange?.(updatedFiles)
+  }
 
   return (
     <FileUploaderContext.Provider
@@ -96,42 +93,33 @@ function FileUploaderTrigger({
     useFileUploader()
   const inputRef = React.useRef<HTMLInputElement>(null)
 
-  const onDrop = React.useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      setIsDragging(false)
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
 
-      if (disabled) return
+    if (disabled) return
 
-      const droppedFiles = Array.from(e.dataTransfer.files)
-      if (droppedFiles.length > 0) {
-        setFiles((prev) => {
-          const combined = [...prev, ...droppedFiles]
-          return maxFiles ? combined.slice(0, maxFiles) : combined
-        })
-      }
-    },
-    [disabled, maxFiles, setFiles, setIsDragging],
-  )
+    const droppedFiles = Array.from(e.dataTransfer.files)
+    if (droppedFiles.length > 0) {
+      setFiles((prev) => {
+        const combined = [...prev, ...droppedFiles]
+        return maxFiles ? combined.slice(0, maxFiles) : combined
+      })
+    }
+  }
 
-  const onDragOver = React.useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      if (!disabled) setIsDragging(true)
-    },
-    [disabled, setIsDragging],
-  )
+  const onDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!disabled) setIsDragging(true)
+  }
 
-  const onDragLeave = React.useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      setIsDragging(false)
-    },
-    [setIsDragging],
-  )
+  const onDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
 
   const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -329,7 +317,7 @@ function FileUploaderItemRemove({
       }}
       {...props}
     >
-      <XIcon />
+      <XIcon data-icon="icon-only" />
     </Button>
   )
 }
