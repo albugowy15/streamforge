@@ -1,6 +1,6 @@
 use crate::{
     modules::books::models::{BookResponse, CreateBookRequest, UpdateBookRequest},
-    shared::app_state::AppState,
+    state::AppState,
 };
 use axum::{
     Json,

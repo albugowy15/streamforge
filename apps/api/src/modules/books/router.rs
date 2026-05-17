@@ -3,7 +3,7 @@ use crate::{
         create_book_handler, delete_book_handler, get_book_handler, list_books_handler,
         update_book_handler,
     },
-    shared::app_state::AppState,
+    state::AppState,
 };
 use axum::{
     Router,

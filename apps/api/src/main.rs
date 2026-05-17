@@ -1,9 +1,3 @@
-use streamforge_api::config::Config;
-use streamforge_api::modules::books::BookRouter;
-use streamforge_api::modules::books::BookService;
-use streamforge_api::modules::books::PostgresBookRepository;
-use streamforge_api::shared::AppState;
-use streamforge_api::storage;
 use axum::Router;
 use axum::http::HeaderValue;
 use axum::http::Method;
@@ -17,6 +11,15 @@ use std::env;
 use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
+use streamforge_api::config::Config;
+use streamforge_api::modules::books::BookRouter;
+use streamforge_api::modules::books::BookService;
+use streamforge_api::modules::books::PostgresBookRepository;
+use streamforge_api::modules::videos::PostgresVideosRepository;
+use streamforge_api::modules::videos::VideosRouter;
+use streamforge_api::modules::videos::VideosService;
+use streamforge_api::state::AppState;
+use streamforge_api::storage;
 use tokio::net::TcpListener;
 use tokio::signal;
 use tower_http::cors::CorsLayer;
@@ -63,13 +66,19 @@ async fn main() -> anyhow::Result<()> {
     migrator.run(db.get_conn()).await?;
 
     let book_repository = Arc::new(PostgresBookRepository::new(db.clone(), s3.clone()));
+    let videos_repository = Arc::new(PostgresVideosRepository::new(db.clone()));
     let book_service = BookService::new(book_repository);
+    let videos_service = VideosService::new(videos_repository);
 
-    let app_state = Arc::new(AppState { book_service });
+    let app_state = Arc::new(AppState {
+        book_service,
+        videos_service,
+    });
 
     let app = Router::new()
         .route("/health", get(check_health))
         .merge(BookRouter::new())
+        .merge(VideosRouter::new())
         .with_state(app_state)
         .layer((
             TraceLayer::new_for_http(),
