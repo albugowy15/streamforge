@@ -1,8 +1,9 @@
-mod config;
-mod modules;
-mod shared;
-mod storage;
-
+use streamforge_api::config::Config;
+use streamforge_api::modules::books::BookRouter;
+use streamforge_api::modules::books::BookService;
+use streamforge_api::modules::books::PostgresBookRepository;
+use streamforge_api::shared::AppState;
+use streamforge_api::storage;
 use axum::Router;
 use axum::http::HeaderValue;
 use axum::http::Method;
@@ -23,12 +24,6 @@ use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-
-use crate::config::Config;
-use crate::modules::books::BookRouter;
-use crate::modules::books::BookService;
-use crate::modules::books::PostgresBookRepository;
-use crate::shared::AppState;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

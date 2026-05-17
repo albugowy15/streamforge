@@ -68,17 +68,39 @@ mod tests {
             created_book.id = Some(1);
             Ok(created_book)
         }
-        async fn get_by_id(&self, _id: i64) -> Result<Option<Book>, String> {
-            Ok(None)
+        async fn get_by_id(&self, id: i64) -> Result<Option<Book>, String> {
+            if id == 1 {
+                Ok(Some(Book::new(
+                    Some(1),
+                    "Existing Book".to_string(),
+                    vec!["Author".to_string()],
+                    vec!["Publisher".to_string()],
+                    NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
+                    "Abstract".to_string(),
+                )))
+            } else {
+                Ok(None)
+            }
         }
         async fn update(&self, book: Book) -> Result<Book, String> {
             Ok(book)
         }
-        async fn delete(&self, _id: i64) -> Result<(), String> {
-            Ok(())
+        async fn delete(&self, id: i64) -> Result<(), String> {
+            if id == 1 {
+                Ok(())
+            } else {
+                Err("Not found".to_string())
+            }
         }
         async fn list(&self) -> Result<Vec<Book>, String> {
-            Ok(vec![])
+            Ok(vec![Book::new(
+                Some(1),
+                "Book 1".to_string(),
+                vec!["Author 1".to_string()],
+                vec!["Publisher 1".to_string()],
+                NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
+                "Abstract 1".to_string(),
+            )])
         }
     }
 
@@ -97,5 +119,60 @@ mod tests {
 
         let res = service.create(req).await.unwrap();
         assert_eq!(res.id, 1);
+        assert_eq!(res.title, "Test Book");
+    }
+
+    #[tokio::test]
+    async fn test_get_book() {
+        let repo = Arc::new(MockBookRepository);
+        let service = BookService::new(repo);
+
+        let res = service.get(1).await.unwrap();
+        assert!(res.is_some());
+        assert_eq!(res.unwrap().title, "Existing Book");
+
+        let res_none = service.get(2).await.unwrap();
+        assert!(res_none.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_update_book() {
+        let repo = Arc::new(MockBookRepository);
+        let service = BookService::new(repo);
+
+        let req = UpdateBookRequest {
+            id: 1,
+            title: "Updated Title".to_string(),
+            authors: vec!["Author".to_string()],
+            publishers: vec!["Publisher".to_string()],
+            date_published: NaiveDate::from_ymd_opt(2023, 1, 1).unwrap(),
+            abstract_text: "Updated Abstract".to_string(),
+        };
+
+        let res = service.update(req).await.unwrap();
+        assert_eq!(res.id, 1);
+        assert_eq!(res.title, "Updated Title");
+    }
+
+    #[tokio::test]
+    async fn test_delete_book() {
+        let repo = Arc::new(MockBookRepository);
+        let service = BookService::new(repo);
+
+        let res = service.delete(1).await;
+        assert!(res.is_ok());
+
+        let res_err = service.delete(2).await;
+        assert!(res_err.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_list_books() {
+        let repo = Arc::new(MockBookRepository);
+        let service = BookService::new(repo);
+
+        let res = service.list().await.unwrap();
+        assert_eq!(res.len(), 1);
+        assert_eq!(res[0].title, "Book 1");
     }
 }

@@ -11,11 +11,10 @@ COPY . .
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 RUN pnpm nx run @streamforge/web:build
 
-FROM base AS runner
-RUN addgroup --system --gid 1001 nodejs \
-  && adduser  --system --uid 1001 appuser
+FROM node:22-slim AS runner
+ENV NODE_ENV=production
 WORKDIR /app
-COPY --from=build /app/apps/web/.output .
-USER appuser
+COPY --from=build --chown=node:node /app/apps/web/.output ./
+USER node
 EXPOSE 3000
 CMD ["node", "server/index.mjs"]

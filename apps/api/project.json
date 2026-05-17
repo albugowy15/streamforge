@@ -9,7 +9,7 @@
         "command": "cargo build --release",
         "cwd": "apps/api"
       },
-      "outputs": ["{workspaceRoot}/target/release/api"],
+      "outputs": ["{workspaceRoot}/target/release/streamforge_api"],
       "inputs": [
         "{projectRoot}/src/**/*",
         "{projectRoot}/Cargo.toml",
