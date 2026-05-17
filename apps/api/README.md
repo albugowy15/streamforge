@@ -69,6 +69,29 @@ Or using standard cargo commands inside `apps/api`:
 cargo run
 ```
 
+## Development Tools
+
+### Module Scaffolding
+
+You can quickly scaffold a new API module (including controller, models, repository, service, and router) using the centralized generator.
+
+From the **workspace root**, run:
+
+```bash
+pnpm generate api init-module <module_name>
+```
+
+**Example:**
+```bash
+pnpm generate api init-module authors
+```
+
+#### Manual Registration Steps
+After scaffolding, you must manually register the new module in the application:
+1.  **Register the module**: Add `pub mod <module_name>;` to `src/modules/mod.rs`.
+2.  **Update AppState**: Add the new service to the `AppState` struct in `src/state.rs`.
+3.  **Composition Root**: In `src/main.rs`, initialize the repository/service and merge the new router into the main Axum `Router`.
+
 ## Testing
 
 The project uses a mix of unit tests for business logic and integration tests.
