@@ -1,0 +1,16 @@
+{
+  "name": "@streamforge/generator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "streamforge-gen": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "gen": "node ./dist/index.js"
+  },
+  "devDependencies": {
+    "tsdown": "^0.22.0"
+  }
+}
