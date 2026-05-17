@@ -1,7 +1,7 @@
-use std::sync::Arc;
-use axum::{Json, extract::State, http::StatusCode};
-use crate::state::AppState;
 use super::models::{CreateVideoRequest, VideoResponse};
+use crate::state::AppState;
+use axum::{Json, extract::State, http::StatusCode};
+use std::sync::Arc;
 
 pub async fn create_video_handler(
     State(state): State<Arc<AppState>>,

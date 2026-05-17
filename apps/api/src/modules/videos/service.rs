@@ -1,6 +1,6 @@
-use std::sync::Arc;
-use super::models::{ Video, VideoResponse, CreateVideoRequest };
+use super::models::{CreateVideoRequest, Video, VideoResponse};
 use super::repository::VideosRepository;
+use std::sync::Arc;
 
 pub struct VideosService {
     repository: Arc<dyn VideosRepository>,
