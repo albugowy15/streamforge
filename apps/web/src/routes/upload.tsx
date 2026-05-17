@@ -41,10 +41,24 @@ import {
   ComboboxValue,
   useComboboxAnchor,
 } from '@/components/ui/combobox'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 
-export const Route = createFileRoute('/upload')({
-  component: UploadPage,
-})
+import { Skeleton } from '@/components/ui/skeleton'
+import { ImagePreview } from '@/components/image-preview'
+
+const visibilityOptions = [
+  { label: 'Public', value: 'public' },
+  { label: 'Private', value: 'private' },
+]
 
 const uploadVideoFormSchema = z.object({
   title: z
@@ -54,19 +68,22 @@ const uploadVideoFormSchema = z.object({
     .max(100, 'Title must be at most 40 characters'),
   description: z
     .string()
-    .min(5, 'Title must be at least 5 characters')
-    .max(400, 'Title must be at most 40 characters'),
+    .min(5, 'Description must be at least 10 characters')
+    .max(400, 'Description must be at most 40 characters'),
   categories: z
     .array(z.string())
     .min(1, 'Categories must be at least 1 categories')
-    .max(2, 'Categories must be at most 10 categories'),
+    .max(10, 'Categories must be at most 10 categories'),
   visibility: z.enum(['public', 'private']),
 })
+
+export const Route = createFileRoute('/upload')({ component: UploadPage })
 
 function UploadPage() {
   const anchor = useComboboxAnchor()
 
-  const [files, setFiles] = React.useState<File[]>([])
+  const [videoFiles, setVideFiles] = React.useState<File[]>([])
+  const [thumbnailFiles, setThumbnailFiles] = React.useState<File[]>([])
   const form = useForm({
     defaultValues: {
       title: '',
@@ -76,7 +93,7 @@ function UploadPage() {
     },
     validators: {
       onSubmit: uploadVideoFormSchema,
-      onChange: uploadVideoFormSchema,
+      onBlur: uploadVideoFormSchema,
     },
   })
 
@@ -92,12 +109,12 @@ function UploadPage() {
           </CardHeader>
           <CardContent>
             <FileUploader
-              value={files}
-              onValueChange={setFiles}
+              value={videoFiles}
+              onValueChange={setVideFiles}
               maxFiles={1}
               accept={{ 'video/*': ['.mp4', '.mkv', '.mov'] }}
             >
-              {files.length === 0 && (
+              {videoFiles.length === 0 && (
                 <FileUploaderTrigger>
                   <FileUploaderContent>
                     <UploadIcon className="size-12 text-muted-foreground transition-colors group-hover:text-accent mb-3" />
@@ -107,7 +124,7 @@ function UploadPage() {
               )}
 
               <FileUploaderList>
-                {files.map((_, i) => (
+                {videoFiles.map((_, i) => (
                   <FileUploaderItem key={i} index={i}>
                     <FileUploaderItemName />
                     <FileUploaderItemSize />
@@ -160,7 +177,7 @@ function UploadPage() {
                         <FieldLabel htmlFor={field.name}>
                           Description
                         </FieldLabel>
-                        <Input
+                        <Textarea
                           id={field.name}
                           name={field.name}
                           value={field.state.value}
@@ -240,6 +257,87 @@ function UploadPage() {
                     )
                   }}
                 />
+                <form.Field
+                  name="visibility"
+                  children={(field) => {
+                    const isInvalid =
+                      field.state.meta.isTouched && !field.state.meta.isValid
+
+                    return (
+                      <Field data-invalid={isInvalid}>
+                        <FieldLabel htmlFor={field.name}>Visibility</FieldLabel>
+                        <Select
+                          value={field.state.value}
+                          defaultValue={field.state.value}
+                          items={visibilityOptions}
+                          onValueChange={(val) =>
+                            field.handleChange(val as string)
+                          }
+                        >
+                          <SelectTrigger aria-invalid={isInvalid}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {visibilityOptions.map((item) => (
+                              <SelectItem key={item.value} value={item.value}>
+                                {item.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {isInvalid && (
+                          <FieldError errors={field.state.meta.errors} />
+                        )}
+                      </Field>
+                    )
+                  }}
+                />
+                <Label>Thumbhail (optional)</Label>
+                <FileUploader
+                  value={thumbnailFiles}
+                  onValueChange={setThumbnailFiles}
+                  maxFiles={1}
+                  accept={{
+                    'image/jpeg': ['.jpg', '.jpeg'],
+                    'image/png': ['.png'],
+                  }}
+                >
+                  {thumbnailFiles.length === 0 && (
+                    <>
+                      <FileUploaderTrigger>
+                        <FileUploaderContent>
+                          <UploadIcon className="size-12 text-muted-foreground transition-colors group-hover:text-accent mb-3" />
+                          <Text tag="p">
+                            Drop your thumbnail image here or click to select
+                          </Text>
+                        </FileUploaderContent>
+                      </FileUploaderTrigger>
+                    </>
+                  )}
+
+                  <FileUploaderList>
+                    {thumbnailFiles.map((file, i) => (
+                      <FileUploaderItem
+                        key={i}
+                        index={i}
+                        className="size-40 p-0 overflow-hidden relative"
+                      >
+                        <React.Suspense
+                          fallback={<Skeleton className="size-full" />}
+                        >
+                          <ImagePreview
+                            file={file}
+                            className="size-full object-cover"
+                          />
+                        </React.Suspense>
+                        <FileUploaderItemRemove className="absolute top-2 right-2 bg-background/50 hover:bg-background" />
+                      </FileUploaderItem>
+                    ))}
+                  </FileUploaderList>
+                </FileUploader>
+                <Button size="lg" type="submit">
+                  Upload
+                </Button>
               </FieldGroup>
             </form>
           </CardContent>
