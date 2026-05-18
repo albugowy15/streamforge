@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use validator::Validate;
 
 use crate::json::{AppJson, JsonData};
 
@@ -21,11 +22,14 @@ pub enum Visibility {
     Public,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize, Validate)]
 pub struct CreateVideoRequest {
+    #[validate(length(min = 20, max = 200))]
     pub title: String,
+    #[validate(length(min = 100, max = 400))]
     pub description: String,
     pub visibility: Visibility,
+    #[validate(length(min = 2, max = 10))]
     pub categories: Vec<String>,
 }
 

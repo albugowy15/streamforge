@@ -22,8 +22,11 @@ use streamforge_api::state::AppState;
 use streamforge_api::storage;
 use tokio::net::TcpListener;
 use tokio::signal;
+use tower::ServiceBuilder;
+use tower_http::compression::CompressionLayer;
 use tower_http::cors::Any;
 use tower_http::cors::CorsLayer;
+use tower_http::decompression::RequestDecompressionLayer;
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::layer::SubscriberExt;
@@ -95,6 +98,11 @@ async fn main() -> anyhow::Result<()> {
                 ]),
             TimeoutLayer::with_status_code(StatusCode::REQUEST_TIMEOUT, Duration::from_secs(10)),
         ))
+        .layer(
+            ServiceBuilder::new()
+                .layer(RequestDecompressionLayer::new())
+                .layer(CompressionLayer::new()),
+        )
         .fallback(not_found_handler);
 
     let listener = TcpListener::bind("0.0.0.0:5000").await?;

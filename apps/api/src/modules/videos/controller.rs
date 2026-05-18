@@ -1,13 +1,16 @@
 use super::models::CreateVideoRequest;
 use crate::{
-    error::AppError, json::AppJson, modules::videos::models::CreateVideoResponse, state::AppState,
+    error::AppError,
+    json::{AppJson, ValidatedJson},
+    modules::videos::models::CreateVideoResponse,
+    state::AppState,
 };
 use axum::extract::State;
 use std::sync::Arc;
 
 pub async fn create_video_handler(
     State(state): State<Arc<AppState>>,
-    AppJson(payload): AppJson<CreateVideoRequest>,
+    ValidatedJson(payload): ValidatedJson<CreateVideoRequest>,
 ) -> Result<CreateVideoResponse, AppError> {
     let res = state
         .videos_service
