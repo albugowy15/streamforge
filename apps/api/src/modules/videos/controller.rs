@@ -1,27 +1,19 @@
-use super::models::{CreateVideoRequest, VideoResponse};
-use crate::state::AppState;
-use axum::{Json, extract::State, http::StatusCode};
+use super::models::CreateVideoRequest;
+use crate::{
+    error::AppError, json::AppJson, modules::videos::models::CreateVideoResponse, state::AppState,
+};
+use axum::extract::State;
 use std::sync::Arc;
 
 pub async fn create_video_handler(
     State(state): State<Arc<AppState>>,
-    Json(payload): Json<CreateVideoRequest>,
-) -> Result<(StatusCode, Json<VideoResponse>), (StatusCode, String)> {
-    state
+    AppJson(payload): AppJson<CreateVideoRequest>,
+) -> Result<CreateVideoResponse, AppError> {
+    let res = state
         .videos_service
         .create(payload)
         .await
-        .map(|res| (StatusCode::CREATED, Json(res)))
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))
-}
+        .map_err(AppError::Internal)?;
 
-pub async fn list_videos_handler(
-    State(state): State<Arc<AppState>>,
-) -> Result<Json<Vec<VideoResponse>>, (StatusCode, String)> {
-    state
-        .videos_service
-        .list()
-        .await
-        .map(Json)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))
+    Ok(AppJson(res.into()))
 }

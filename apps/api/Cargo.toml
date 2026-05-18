@@ -8,7 +8,7 @@ anyhow = "1.0.102"
 async-trait = "0.1.89"
 aws-config = "1.8.16"
 aws-sdk-s3 = "1.132.0"
-axum = "0.8.9"
+axum = { version = "0.8.9", features = ["macros"] }
 chrono = { version = "0.4.44", features = ["serde"] }
 dotenvy = "0.15.7"
 serde = { version = "1.0.228", features = ["derive"] }
@@ -21,7 +21,11 @@ sqlx = { version = "0.8.6", features = [
   "migrate",
   "uuid",
 ] }
-tokio = { version = "1.52.3", features = ["rt-multi-thread", "tracing", "signal"] }
+tokio = { version = "1.52.3", features = [
+  "rt-multi-thread",
+  "tracing",
+  "signal",
+] }
 tower-http = { version = "0.6.10", features = ["trace", "timeout", "cors"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }

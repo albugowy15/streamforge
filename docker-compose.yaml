@@ -12,6 +12,9 @@ services:
     networks:
       - backend
       - frontend
+    depends_on:
+      - postgres
+      - rustfs
 
   web:
     build:

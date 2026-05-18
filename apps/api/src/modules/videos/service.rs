@@ -12,7 +12,7 @@ impl VideosService {
     }
 
     pub async fn create(&self, req: CreateVideoRequest) -> Result<VideoResponse, String> {
-        let item = Video::new(None, req.name);
+        let item = Video::new(None, req.title);
         let created = self.repository.create(item).await?;
         Ok(VideoResponse::from(created))
     }
