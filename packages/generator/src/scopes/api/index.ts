@@ -1,12 +1,10 @@
-import { initModule } from './init-module';
+import { Command, Args } from "@effect/cli";
+import { initModule } from "./init-module";
 
-export async function apiScope(action: string, args: string[]) {
-  switch (action) {
-    case 'init-module':
-      await initModule(args);
-      break;
-    default:
-      console.error(`Error: Unknown action '${action}' for scope 'api'`);
-      process.exit(1);
-  }
-}
+export const apiCommand = Command.make("api").pipe(
+  Command.withSubcommands([
+    Command.make("init-module", {
+      moduleName: Args.text({ name: "module_name" }),
+    }).pipe(Command.withHandler(({ moduleName }) => initModule(moduleName))),
+  ])
+);

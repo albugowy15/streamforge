@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "@base-ui/react": "1.4.1",
+    "@effect/schema": "^0.75.5",
     "@fontsource-variable/inter": "5.2.8",
     "@tailwindcss/vite": "4.3.0",
     "@tanstack/react-devtools": "0.10.3",
@@ -43,6 +44,7 @@
     "@tanstack/router-plugin": "1.167.35",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
+    "effect": "^3.21.2",
     "lucide-react": "1.14.0",
     "nitro": "3.0.260429-beta",
     "react": "19.2.6",

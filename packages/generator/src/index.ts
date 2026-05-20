@@ -1,25 +1,18 @@
-import { apiScope } from './scopes/api/index';
+import { Command } from "@effect/cli";
+import { NodeContext, NodeRuntime } from "@effect/platform-node";
+import { Effect } from "effect";
+import { apiCommand } from "./scopes/api/index";
 
-const [scope, action, ...args] = process.argv.slice(2);
+const rootCommand = Command.make("streamforge-gen").pipe(
+  Command.withSubcommands([apiCommand])
+);
 
-if (!scope || !action) {
-  console.error('Usage: streamforge-gen <scope> <action> [args...]');
-  console.error('Available scopes: api');
-  process.exit(1);
-}
-
-async function main() {
-  switch (scope) {
-    case 'api':
-      await apiScope(action, args);
-      break;
-    default:
-      console.error(`Error: Unknown scope '${scope}'`);
-      process.exit(1);
-  }
-}
-
-main().catch((err) => {
-  console.error('Fatal error:', err);
-  process.exit(1);
+const program = Command.run(rootCommand, {
+  name: "Streamforge Generator",
+  version: "0.1.0",
 });
+
+Effect.suspend(() => program(process.argv)).pipe(
+  Effect.provide(NodeContext.layer),
+  NodeRuntime.runMain
+);
