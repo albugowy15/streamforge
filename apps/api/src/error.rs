@@ -1,5 +1,5 @@
 use axum::{
-    extract::rejection::JsonRejection,
+    extract::rejection::{FormRejection, JsonRejection},
     http::StatusCode,
     response::{IntoResponse, Response},
 };
@@ -12,6 +12,7 @@ use crate::json::AppJson;
 pub enum AppError {
     ValidationErrors(ValidationErrors),
     JsonRejection(JsonRejection),
+    FormRejection(FormRejection),
     Internal(String),
     Unathorized,
     BadRequest(String),
@@ -35,6 +36,13 @@ impl IntoResponse for AppError {
                 },
             ),
             AppError::JsonRejection(rejection) => (
+                rejection.status(),
+                ErrorResponse {
+                    message: Some(rejection.body_text()),
+                    errors: None,
+                },
+            ),
+            AppError::FormRejection(rejection) => (
                 rejection.status(),
                 ErrorResponse {
                     message: Some(rejection.body_text()),
@@ -75,8 +83,14 @@ impl IntoResponse for AppError {
 }
 
 impl From<JsonRejection> for AppError {
-    fn from(rejection: JsonRejection) -> Self {
-        Self::JsonRejection(rejection)
+    fn from(value: JsonRejection) -> Self {
+        Self::JsonRejection(value)
+    }
+}
+
+impl From<FormRejection> for AppError {
+    fn from(value: FormRejection) -> Self {
+        Self::FormRejection(value)
     }
 }
 
