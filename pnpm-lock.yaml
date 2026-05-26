@@ -7,10 +7,6 @@ settings:
 importers:
 
   .:
-    dependencies:
-      effect:
-        specifier: ^3.21.2
-        version: 3.21.2
     devDependencies:
       '@nx/js':
         specifier: 22.7.1
