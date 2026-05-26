@@ -1,23 +1,15 @@
-use super::controller::{
-    create_video_handler, show_upload_status_handler, upload_video_chunk_handler,
-};
+use super::controller::*;
 use crate::state::AppState;
-use axum::{
-    Router,
-    routing::{get, post},
-};
 use std::sync::Arc;
+use utoipa_axum::router::OpenApiRouter;
 
 pub struct VideosRouter;
 
 impl VideosRouter {
-    pub fn new() -> Router<Arc<AppState>> {
-        Router::new()
-            .route("/videos", post(create_video_handler))
-            .route("/videos/{id}/parts", post(upload_video_chunk_handler))
-            .route(
-                "/videos/{id}/upload-status",
-                get(show_upload_status_handler),
-            )
+    pub fn new() -> OpenApiRouter<Arc<AppState>> {
+        OpenApiRouter::new()
+            .routes(utoipa_axum::routes!(create_video_handler))
+            .routes(utoipa_axum::routes!(upload_video_chunk_handler))
+            .routes(utoipa_axum::routes!(show_upload_status_handler))
     }
 }

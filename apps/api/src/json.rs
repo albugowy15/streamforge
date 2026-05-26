@@ -8,7 +8,7 @@ use validator::Validate;
 
 use crate::error::AppError;
 
-#[derive(FromRequest)]
+#[derive(FromRequest, utoipa::ToSchema)]
 #[from_request(via(axum::Json), rejection(AppError))]
 pub struct AppJson<T>(pub T);
 
@@ -21,7 +21,7 @@ where
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, utoipa::ToSchema)]
 pub struct JsonData<T: Serialize> {
     pub data: T,
 }

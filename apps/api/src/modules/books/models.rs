@@ -1,8 +1,9 @@
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 // --- Entities (Domain) ---
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, ToSchema)]
 pub struct Book {
     pub id: Option<i64>,
     pub title: String,
@@ -33,7 +34,7 @@ impl Book {
 }
 
 // --- DTOs (Use Case / Interface) ---
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct CreateBookRequest {
     pub title: String,
     pub authors: Vec<String>,
@@ -42,7 +43,7 @@ pub struct CreateBookRequest {
     pub abstract_text: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct UpdateBookRequest {
     pub id: i64,
     pub title: String,
@@ -52,7 +53,7 @@ pub struct UpdateBookRequest {
     pub abstract_text: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct BookResponse {
     pub id: i64,
     pub title: String,

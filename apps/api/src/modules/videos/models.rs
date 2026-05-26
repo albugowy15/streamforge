@@ -1,10 +1,11 @@
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use validator::Validate;
 
 use crate::json::{AppJson, JsonData};
 
 // begin REQUEST DTOS
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize, Validate, ToSchema)]
 pub struct CreateVideoRequest {
     #[validate(length(min = 20, max = 200))]
     pub title: String,
@@ -29,7 +30,7 @@ impl From<CreateVideoRequest> for Video {
 // end REQUEST DTOS
 
 // begin RESPONSE DTOS
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct CreateVideoResponse {
     pub video_id: String,
     pub upload_id: String,
@@ -55,7 +56,7 @@ pub struct Video {
     pub visibility: Visibility,
     pub categories: Vec<String>,
 }
-#[derive(Debug, Default, Deserialize, Serialize, sqlx::Type)]
+#[derive(Debug, Default, Deserialize, Serialize, sqlx::Type, ToSchema)]
 #[serde(rename_all = "lowercase")]
 #[sqlx(type_name = "visibility_enum", rename_all = "lowercase")]
 pub enum Visibility {

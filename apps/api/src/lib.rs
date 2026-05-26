@@ -10,7 +10,6 @@ use axum::{
     Router,
     http::{Method, StatusCode, header},
     response::IntoResponse,
-    routing::get,
 };
 use std::{sync::Arc, time::Duration};
 use tower::ServiceBuilder;
@@ -21,6 +20,10 @@ use tower_http::{
     timeout::TimeoutLayer,
     trace::TraceLayer,
 };
+use utoipa::OpenApi;
+use utoipa_axum::router::OpenApiRouter;
+use utoipa_redoc::{Redoc, Servable};
+use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
     error::AppError,
@@ -33,6 +36,14 @@ use crate::{
 };
 
 pub fn build_app(db: Arc<PostgresDatabase>, s3: Arc<S3>) -> Router {
+    #[derive(OpenApi)]
+    #[openapi(
+        tags(
+            (name = "StreamForge API", description = "StreamForge management API")
+        )
+    )]
+    struct ApiDoc;
+
     let book_repository = Arc::new(PostgresBookRepository::new(db.clone(), s3.clone()));
     let videos_repository = Arc::new(PostgresVideosRepository::new(db.clone()));
     let book_service = BookService::new(book_repository);
@@ -43,11 +54,17 @@ pub fn build_app(db: Arc<PostgresDatabase>, s3: Arc<S3>) -> Router {
         videos_service,
     });
 
-    Router::new()
-        .route("/health", get(check_health))
-        .merge(BookRouter::new())
-        .merge(VideosRouter::new())
-        .with_state(app_state)
+    let (router, api) = OpenApiRouter::with_openapi(ApiDoc::openapi())
+        .routes(utoipa_axum::routes!(check_health))
+        .nest("/api/v1/", BookRouter::new())
+        .nest("/api/v1/", VideosRouter::new())
+        .split_for_parts();
+
+    let router = router.with_state(app_state);
+
+    router
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", api.clone()))
+        .merge(Redoc::with_url("/redoc", api.clone()))
         .layer((
             TraceLayer::new_for_http(),
             CorsLayer::new()
@@ -74,6 +91,14 @@ async fn not_found_handler() -> impl IntoResponse {
     AppError::NotFound
 }
 
+#[utoipa::path(
+    get,
+    path = "/health",
+    responses(
+        (status = 200, description = "Check health")
+    ),
+    tag = "Health"
+)]
 async fn check_health() -> impl IntoResponse {
     StatusCode::OK
 }
