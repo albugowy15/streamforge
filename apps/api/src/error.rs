@@ -94,6 +94,12 @@ impl From<FormRejection> for AppError {
     }
 }
 
+impl From<sqlx::Error> for AppError {
+    fn from(value: sqlx::Error) -> Self {
+        Self::Internal(value.to_string())
+    }
+}
+
 impl From<ValidationErrors> for AppError {
     fn from(value: ValidationErrors) -> Self {
         Self::ValidationErrors(value)
