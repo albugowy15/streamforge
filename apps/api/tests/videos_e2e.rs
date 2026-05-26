@@ -162,7 +162,7 @@ async fn test_post_videos_e2e() {
     });
 
     let response = client
-        .post(&format!("{}/videos", app.address))
+        .post(&format!("{}/api/v1/videos", app.address))
         .json(&payload)
         .send()
         .await
@@ -198,7 +198,7 @@ async fn test_post_videos_e2e() {
 
     // 2. Invalid JSON case
     let response = client
-        .post(&format!("{}/videos", app.address))
+        .post(&format!("{}/api/v1/videos", app.address))
         .header("Content-Type", "application/json")
         .body("invalid-json")
         .send()
@@ -216,7 +216,7 @@ async fn test_post_videos_e2e() {
     });
 
     let response = client
-        .post(&format!("{}/videos", app.address))
+        .post(&format!("{}/api/v1/videos", app.address))
         .json(&payload)
         .send()
         .await
