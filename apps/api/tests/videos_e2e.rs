@@ -16,10 +16,25 @@ pub struct TestApp {
     pub db: Arc<PostgresDatabase>,
 }
 
-// Global containers started once per test run
+/// GLOBAL INFRASTRUCTURE STRATEGY:
+///
+/// Starting Docker containers is expensive (1-2 seconds per container).
+/// To keep tests fast, we use a "Shared Container + Isolated Database" approach:
+///
+/// 1. Shared Containers: Postgres and rustfs are started once per test run using `OnceLock`.
+/// 2. Isolated Databases: Each call to `spawn_app` creates a brand-new database within the
+///    shared Postgres instance.
+/// 3. Automatic Cleanup: Testcontainers handles stopping the containers when the test process exits.
+///
+/// This provides the speed of shared infrastructure with the perfect isolation of fresh containers.
+
+// OnceLock is a thread-safe synchronization primitive that can be written to only once.
+// We use it here to ensure that the heavy Docker containers are initialized lazily
+// and only a single time, even when multiple tests run in parallel.
 static POSTGRES_CONTAINER: OnceLock<ContainerAsync<GenericImage>> = OnceLock::new();
 static RUSTFS_CONTAINER: OnceLock<ContainerAsync<GenericImage>> = OnceLock::new();
 
+/// Returns a reference to the global Postgres container, starting it if necessary.
 async fn get_postgres_container() -> &'static ContainerAsync<GenericImage> {
     if let Some(c) = POSTGRES_CONTAINER.get() {
         return c;
@@ -36,10 +51,13 @@ async fn get_postgres_container() -> &'static ContainerAsync<GenericImage> {
         .with_env_var("POSTGRES_PASSWORD", "postgres");
 
     let container = postgres_image.start().await.unwrap();
+    // set() might fail if another test started the container at the exact same microsecond,
+    // which is fine as we just want one instance.
     POSTGRES_CONTAINER.set(container).ok();
     POSTGRES_CONTAINER.get().unwrap()
 }
 
+/// Returns a reference to the global rustfs container, starting it if necessary.
 async fn get_rustfs_container() -> &'static ContainerAsync<GenericImage> {
     if let Some(c) = RUSTFS_CONTAINER.get() {
         return c;
@@ -58,6 +76,13 @@ async fn get_rustfs_container() -> &'static ContainerAsync<GenericImage> {
     RUSTFS_CONTAINER.get().unwrap()
 }
 
+/// Bootstraps a fresh application instance for testing.
+///
+/// This involves:
+/// 1. Connecting to the shared global containers.
+/// 2. Creating a unique, isolated database for this specific test.
+/// 3. Running migrations on the new database.
+/// 4. Starting the API server on a random available port.
 pub async fn spawn_app() -> TestApp {
     let _ = tracing_subscriber::fmt()
         .with_env_filter(
