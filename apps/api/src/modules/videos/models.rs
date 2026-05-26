@@ -3,25 +3,7 @@ use validator::Validate;
 
 use crate::json::{AppJson, JsonData};
 
-#[derive(Debug, Clone)]
-pub struct Video {
-    pub id: Option<i64>,
-    pub name: String,
-}
-
-impl Video {
-    pub fn new(id: Option<i64>, name: String) -> Self {
-        Self { id, name }
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Visibility {
-    Private,
-    Public,
-}
-
+// begin REQUEST DTOS
 #[derive(Debug, Deserialize, Validate)]
 pub struct CreateVideoRequest {
     #[validate(length(min = 20, max = 200))]
@@ -33,25 +15,97 @@ pub struct CreateVideoRequest {
     pub categories: Vec<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct VideoResponse {
-    pub id: i64,
-    pub name: String,
+impl From<CreateVideoRequest> for Video {
+    fn from(value: CreateVideoRequest) -> Self {
+        Self {
+            title: value.title,
+            description: value.description,
+            visibility: value.visibility,
+            categories: value.categories,
+            ..Default::default()
+        }
+    }
+}
+// end REQUEST DTOS
+
+// begin RESPONSE DTOS
+#[derive(Debug, Serialize)]
+pub struct CreateVideoResponse {
+    pub video_id: String,
+    pub upload_id: String,
 }
 
-pub type CreateVideoResponse = AppJson<JsonData<VideoResponse>>;
+pub type CreateVideoResponseJson = AppJson<JsonData<CreateVideoResponse>>;
 
-impl From<VideoResponse> for JsonData<VideoResponse> {
-    fn from(value: VideoResponse) -> Self {
+impl From<CreateVideoResponse> for JsonData<CreateVideoResponse> {
+    fn from(value: CreateVideoResponse) -> Self {
         JsonData { data: value }
     }
 }
 
-impl From<Video> for VideoResponse {
-    fn from(item: Video) -> Self {
-        Self {
-            id: item.id.unwrap_or(0),
-            name: item.name,
-        }
+pub type UploadVideoChunkResponseJson = AppJson<String>;
+// end RESPONSE DTOS
+
+// begin TABLE
+#[derive(Default)]
+pub struct Video {
+    pub id: String,
+    pub title: String,
+    pub description: String,
+    pub visibility: Visibility,
+    pub categories: Vec<String>,
+}
+#[derive(Debug, Default, Deserialize, Serialize, sqlx::Type)]
+#[serde(rename_all = "lowercase")]
+#[sqlx(type_name = "visibility_enum", rename_all = "lowercase")]
+pub enum Visibility {
+    Private,
+    #[default]
+    Public,
+}
+// end TABLE
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use validator::Validate;
+
+    #[test]
+    fn test_create_video_request_validation() {
+        // Valid request
+        let request = CreateVideoRequest {
+            title: "A valid video title that is long enough".to_string(),
+            description: "This is a valid description that is intentionally made to be over one hundred characters long to pass the validation check definitely.".to_string(),
+            visibility: Visibility::Public,
+            categories: vec!["action".to_string(), "comedy".to_string()],
+        };
+        assert!(request.validate().is_ok());
+
+        // Invalid title (too short)
+        let request = CreateVideoRequest {
+            title: "Short title".to_string(),
+            description: "This is a valid description that is intentionally made to be over one hundred characters long to pass the validation check definitely.".to_string(),
+            visibility: Visibility::Public,
+            categories: vec!["action".to_string(), "comedy".to_string()],
+        };
+        assert!(request.validate().is_err());
+
+        // Invalid description (too short)
+        let request = CreateVideoRequest {
+            title: "A valid video title that is long enough".to_string(),
+            description: "Too short".to_string(),
+            visibility: Visibility::Public,
+            categories: vec!["action".to_string(), "comedy".to_string()],
+        };
+        assert!(request.validate().is_err());
+
+        // Invalid categories (too few)
+        let request = CreateVideoRequest {
+            title: "A valid video title that is long enough".to_string(),
+            description: "This is a valid description that is intentionally made to be over one hundred characters long to pass the validation check definitely.".to_string(),
+            visibility: Visibility::Public,
+            categories: vec!["action".to_string()],
+        };
+        assert!(request.validate().is_err());
     }
 }

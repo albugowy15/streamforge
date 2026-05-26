@@ -1,7 +1,10 @@
-mod controller;
-mod models;
-mod repository;
+pub mod controller;
+pub mod models;
+pub mod repository;
 mod router;
-mod service;
+pub mod service;
 
-pub use {repository::PostgresVideosRepository, router::VideosRouter, service::VideosService};
+pub use {
+    models::Video, repository::PostgresVideosRepository, repository::VideosRepository,
+    router::VideosRouter, service::VideosService,
+};

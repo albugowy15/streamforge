@@ -1,7 +1,10 @@
-mod controller;
-mod models;
-mod repository;
+pub mod controller;
+pub mod models;
+pub mod repository;
 mod router;
-mod service;
+pub mod service;
 
-pub use {repository::PostgresBookRepository, router::BookRouter, service::BookService};
+pub use {
+    models::Book, repository::BookRepository, repository::PostgresBookRepository,
+    router::BookRouter, service::BookService,
+};
