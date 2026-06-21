@@ -2,12 +2,17 @@
 
 # compiled output
 dist
+**/dist
 tmp
+**/tmp
 out-tsc
+**/out-tsc
 tsconfig.tsbuildinfo
+**/tsconfig.tsbuildinfo
 
 # dependencies
 node_modules
+**/node_modules
 
 # IDEs and editors
 /.idea
@@ -34,11 +39,23 @@ npm-debug.log
 yarn-error.log
 testem.log
 /typings
+**/samples
 
 # System Files
 .DS_Store
 Thumbs.db
 .env
+**/.env
+
+# local generated app output
+**/.output
+**/.nitro
+**/.tanstack
+**/.vite
+**/.vinxi
+**/.wrangler
+__unconfig*
+**/__unconfig*
 
 .nx/cache
 .nx/workspace-data
@@ -52,5 +69,6 @@ Thumbs.db
 
 # Rust
 target/
+**/target/
 **/*.rs.bk
 *.pdb
