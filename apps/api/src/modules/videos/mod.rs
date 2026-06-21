@@ -5,6 +5,6 @@ mod router;
 pub mod service;
 
 pub use {
-    models::Video, repository::PostgresVideosRepository, repository::VideosRepository,
+    models::Video, repository::VideoUploadRepository, repository::VideosRepository,
     router::VideosRouter, service::VideosService,
 };

@@ -28,7 +28,7 @@ use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
     error::AppError,
-    modules::videos::{PostgresVideosRepository, VideosRouter, VideosService},
+    modules::videos::{VideoUploadRepository, VideosRouter, VideosService},
     state::AppState,
     storage::{PostgresDatabase, S3},
 };
@@ -42,7 +42,7 @@ pub fn build_app(db: Arc<PostgresDatabase>, s3: Arc<S3>) -> Router {
     )]
     struct ApiDoc;
 
-    let videos_repository = Arc::new(PostgresVideosRepository::new(db.clone(), s3.clone()));
+    let videos_repository = Arc::new(VideoUploadRepository::new(db.clone(), s3.clone()));
     let videos_service = VideosService::new(videos_repository);
 
     let app_state = Arc::new(AppState { videos_service });

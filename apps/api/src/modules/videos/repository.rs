@@ -43,12 +43,12 @@ pub trait VideosRepository: Send + Sync {
     ) -> Result<(), AppError>;
 }
 
-pub struct PostgresVideosRepository {
+pub struct VideoUploadRepository {
     db: Arc<PostgresDatabase>,
     s3: Arc<S3>,
 }
 
-impl PostgresVideosRepository {
+impl VideoUploadRepository {
     pub fn new(db: Arc<PostgresDatabase>, s3: Arc<S3>) -> Self {
         Self { db, s3 }
     }
@@ -59,7 +59,7 @@ impl PostgresVideosRepository {
 }
 
 #[async_trait]
-impl VideosRepository for PostgresVideosRepository {
+impl VideosRepository for VideoUploadRepository {
     async fn insert(&self, item: Video) -> Result<String, sqlx::Error> {
         let created_id: uuid::Uuid = sqlx::query_scalar(
             r#"
