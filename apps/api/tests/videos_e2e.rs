@@ -123,6 +123,7 @@ pub async fn spawn_app() -> TestApp {
         access_key_id: "rustfsadmin".to_string(),
         secret_access_key: "rustfsadmin".to_string(),
         endpoint_url: format!("http://{}:{}", fs_host, fs_port),
+        bucket: "streamforge-test".to_string(),
     };
 
     // 4. Initialize Database and Migrations

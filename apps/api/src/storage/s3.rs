@@ -1,3 +1,4 @@
+use anyhow::Context;
 use aws_config::BehaviorVersion;
 use aws_sdk_s3::{
     Client,
@@ -6,7 +7,10 @@ use aws_sdk_s3::{
 
 use crate::config::Config;
 
-pub struct S3(Client);
+pub struct S3 {
+    client: Client,
+    bucket: String,
+}
 
 impl S3 {
     pub async fn new(config: &Config) -> Self {
@@ -24,10 +28,42 @@ impl S3 {
             .endpoint_url(&config.endpoint_url)
             .load()
             .await;
-        Self(Client::new(&shared_config))
+        let s3_config = aws_sdk_s3::config::Builder::from(&shared_config)
+            .force_path_style(true)
+            .build();
+        Self {
+            client: Client::from_conf(s3_config),
+            bucket: config.bucket.clone(),
+        }
     }
 
     pub fn get_client(&self) -> &Client {
-        &self.0
+        &self.client
+    }
+
+    pub fn bucket(&self) -> &str {
+        &self.bucket
+    }
+
+    pub async fn ensure_bucket_exists(&self) -> anyhow::Result<()> {
+        if self
+            .client
+            .head_bucket()
+            .bucket(&self.bucket)
+            .send()
+            .await
+            .is_ok()
+        {
+            return Ok(());
+        }
+
+        self.client
+            .create_bucket()
+            .bucket(&self.bucket)
+            .send()
+            .await
+            .with_context(|| format!("failed to create S3 bucket {}", self.bucket))?;
+
+        Ok(())
     }
 }

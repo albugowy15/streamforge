@@ -6,6 +6,7 @@ pub struct Config {
     pub access_key_id: String,
     pub secret_access_key: String,
     pub endpoint_url: String,
+    pub bucket: String,
 }
 
 impl Config {
@@ -14,6 +15,7 @@ impl Config {
         let access_key_id = env::var("S3_ACCESS_KEY_ID")?;
         let secret_access_key = env::var("S3_SECRET_ACCESS_KEY")?;
         let endpoint_url = env::var("S3_ENDPOINT_URL")?;
+        let bucket = env::var("S3_BUCKET")?;
         let database_url = env::var("DATABASE_URL")?;
         Ok(Self {
             database_url,
@@ -21,6 +23,7 @@ impl Config {
             access_key_id,
             secret_access_key,
             endpoint_url,
+            bucket,
         })
     }
 }

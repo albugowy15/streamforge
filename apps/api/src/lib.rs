@@ -8,6 +8,7 @@ pub mod storage;
 
 use axum::{
     Router,
+    extract::DefaultBodyLimit,
     http::{Method, StatusCode, header},
     response::IntoResponse,
 };
@@ -27,10 +28,7 @@ use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
     error::AppError,
-    modules::{
-        books::{BookRouter, BookService, PostgresBookRepository},
-        videos::{PostgresVideosRepository, VideosRouter, VideosService},
-    },
+    modules::videos::{PostgresVideosRepository, VideosRouter, VideosService},
     state::AppState,
     storage::{PostgresDatabase, S3},
 };
@@ -44,19 +42,13 @@ pub fn build_app(db: Arc<PostgresDatabase>, s3: Arc<S3>) -> Router {
     )]
     struct ApiDoc;
 
-    let book_repository = Arc::new(PostgresBookRepository::new(db.clone(), s3.clone()));
-    let videos_repository = Arc::new(PostgresVideosRepository::new(db.clone()));
-    let book_service = BookService::new(book_repository);
+    let videos_repository = Arc::new(PostgresVideosRepository::new(db.clone(), s3.clone()));
     let videos_service = VideosService::new(videos_repository);
 
-    let app_state = Arc::new(AppState {
-        book_service,
-        videos_service,
-    });
+    let app_state = Arc::new(AppState { videos_service });
 
     let (router, api) = OpenApiRouter::with_openapi(ApiDoc::openapi())
         .routes(utoipa_axum::routes!(check_health))
-        .nest("/api/v1/", BookRouter::new())
         .nest("/api/v1/", VideosRouter::new())
         .split_for_parts();
 
@@ -65,6 +57,7 @@ pub fn build_app(db: Arc<PostgresDatabase>, s3: Arc<S3>) -> Router {
     router
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", api.clone()))
         .merge(Redoc::with_url("/redoc", api.clone()))
+        .layer(DefaultBodyLimit::max(64 * 1024 * 1024))
         .layer((
             TraceLayer::new_for_http(),
             CorsLayer::new()
@@ -77,7 +70,7 @@ pub fn build_app(db: Arc<PostgresDatabase>, s3: Arc<S3>) -> Router {
                     Method::PATCH,
                     Method::DELETE,
                 ]),
-            TimeoutLayer::with_status_code(StatusCode::REQUEST_TIMEOUT, Duration::from_secs(10)),
+            TimeoutLayer::with_status_code(StatusCode::REQUEST_TIMEOUT, Duration::from_secs(300)),
         ))
         .layer(
             ServiceBuilder::new()
