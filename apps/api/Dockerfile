@@ -5,6 +5,8 @@ COPY apps/api/src ./src
 RUN cargo build --release
 
 FROM gcr.io/distroless/cc-debian13:nonroot-amd64
-COPY --from=builder /app/target/release/api /app/api
+WORKDIR /app
+COPY --from=builder /app/target/release/streamforge_api /app/streamforge_api
+COPY apps/api/migrations /app/migrations
 EXPOSE 5000
-CMD ["/app/api"]
+CMD ["/app/streamforge_api"]
