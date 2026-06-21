@@ -1,105 +1,89 @@
-# New Nx Repository
+# Streamforge
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+Streamforge is an Nx-managed monorepo for a video upload and streaming platform. It is built around three core capabilities:
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+1. Resumable file upload for large source videos.
+2. Video processing with FFmpeg.
+3. Live streaming based on the HTTP Live Streaming (HLS) protocol.
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/nx-api/js?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
-## Try the full Nx platform
-🚀 If you haven't connected to Nx Cloud yet, [complete your setup here](https://cloud.nx.app/setup/connect-workspace/guide). Get faster builds with remote caching, distributed task execution, and self-healing CI. [See how your workspace can benefit](#nx-cloud).
-## Generate a library
+It has two applications:
 
-```sh
-npx nx g @nx/js:lib packages/pkg1 --publishable --importPath=@my-org/pkg1
+- `apps/api`: a Rust backend that handles video metadata, resumable uploads, storage, and future HLS processing.
+- `apps/web`: a TanStack Start frontend for uploading and streaming videos.
+
+## Core Features
+
+### Resumable File Upload
+
+Users upload one source video along with its metadata. Because source files can be large, the API uses S3 multipart upload against RustFS so interrupted uploads can continue from the last completed part instead of starting again from byte zero.
+
+The upload flow is designed for unstable networks and browser interruptions. The API exposes endpoints to create an upload session, send individual parts, inspect upload progress, complete the upload, and abort unfinished uploads.
+
+### Video Processing With FFmpeg
+
+After a source upload completes, the API will process the uploaded video with FFmpeg. The processing pipeline will generate streaming-ready outputs, including the manifests and media segments required for adaptive playback.
+
+This work is intended to convert one uploaded source file into multiple delivery assets without asking the user to re-upload or manually transcode anything.
+
+### Live Streaming With HLS
+
+Streamforge serves playback through HTTP Live Streaming. HLS lets the client choose an appropriate rendition based on network conditions and switch resolution during playback when needed.
+
+The target experience includes adaptive streaming, manual quality selection, seek support, play/pause, volume control, and optional playback-speed controls.
+
+## Repository Layout
+
+- `apps/api/` contains the Rust API, SQLx migrations, and backend-specific docs.
+- `apps/web/` contains the TanStack Start app, routes, components, and public assets.
+- `packages/generator/` contains the local Nx generator used by `pnpm generate`.
+- Root files such as `package.json`, `nx.json`, and `docker-compose.yaml` define workspace scripts and local infrastructure.
+
+## Workspace Commands
+
+Run tasks from the repository root so Nx can coordinate caching and project dependencies:
+
+```bash
+pnpm dev        # run dev targets across the workspace
+pnpm build      # build all projects with a build target
+pnpm test       # run workspace tests
+pnpm lint       # run workspace lint targets
+pnpm typecheck  # run workspace type checks
+pnpm start      # run start targets
+pnpm generate   # build and run the local generator
 ```
 
-## Run tasks
+To run one app directly with Nx:
 
-To build the library use:
-
-```sh
-npx nx build pkg1
+```bash
+pnpm nx run @streamforge/api:dev
+pnpm nx run @streamforge/web:dev
 ```
 
-To run any task with Nx use:
+## Local Infrastructure
 
-```sh
-npx nx <target> <project-name>
+The project is designed to run locally with Docker:
+
+```bash
+docker compose up -d postgres redis rustfs
+docker compose up -d
 ```
 
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
+- `postgres` stores application data.
+- `redis` supports cache or background-work workloads.
+- `rustfs` provides S3-compatible object storage for uploaded video files.
+- `api` and `web` are the application containers.
 
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+## Configuration
 
-## Versioning and releasing
+Each app owns its own `.env` file at the app root:
 
-To version and release the library use
+- `apps/api/.env`
+- `apps/web/.env`
 
-```
-npx nx release
-```
+Copy from the example file in the same app directory before running locally. Do not commit real secrets.
 
-Pass `--dry-run` to see what would happen without actually releasing the library.
+## Project Docs
 
-[Learn more about Nx release &raquo;](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Keep TypeScript project references up to date
-
-Nx automatically updates TypeScript [project references](https://www.typescriptlang.org/docs/handbook/project-references.html) in `tsconfig.json` files to ensure they remain accurate based on your project dependencies (`import` or `require` statements). This sync is automatically done when running tasks such as `build` or `typecheck`, which require updated references to function correctly.
-
-To manually trigger the process to sync the project graph dependencies information to the TypeScript project references, run the following command:
-
-```sh
-npx nx sync
-```
-
-You can enforce that the TypeScript project references are always in the correct state when running in CI by adding a step to your CI job configuration that runs the following command:
-
-```sh
-npx nx sync:check
-```
-
-[Learn more about nx sync](https://nx.dev/reference/nx-commands#sync)
-
-## Nx Cloud
-
-Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
-
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-### Set up CI (non-Github Actions CI)
-
-**Note:** This is only required if your CI provider is not GitHub Actions.
-
-Use the following command to configure a CI workflow for your workspace:
-
-```sh
-npx nx g ci-workflow
-```
-
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Install Nx Console
-
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
-
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Useful links
-
-Learn more:
-
-- [Learn more about this workspace setup](https://nx.dev/nx-api/js?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-And join the Nx community:
-
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+- API guide: [apps/api/README.md](apps/api/README.md)
+- Web guide: [apps/web/README.md](apps/web/README.md)
+- Contributor rules: [AGENTS.md](AGENTS.md)
