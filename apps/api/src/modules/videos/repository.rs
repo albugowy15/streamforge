@@ -9,6 +9,7 @@ use aws_sdk_s3::{
     types::{CompletedMultipartUpload, CompletedPart},
 };
 use std::sync::Arc;
+use tracing::{debug, info};
 
 #[async_trait]
 pub trait VideosRepository: Send + Sync {
@@ -61,6 +62,12 @@ impl VideoUploadRepository {
 #[async_trait]
 impl VideosRepository for VideoUploadRepository {
     async fn insert(&self, item: Video) -> Result<String, sqlx::Error> {
+        debug!(
+            title = %item.title,
+            categories = item.categories.len(),
+            "inserting video metadata"
+        );
+
         let created_id: uuid::Uuid = sqlx::query_scalar(
             r#"
             INSERT INTO videos (title, description, categories, visibility) 
@@ -75,6 +82,8 @@ impl VideosRepository for VideoUploadRepository {
         .fetch_one(self.db.get_conn())
         .await?;
 
+        info!(video_id = %created_id, "video metadata inserted");
+
         Ok(created_id.to_string())
     }
 
@@ -83,6 +92,13 @@ impl VideosRepository for VideoUploadRepository {
         object_key: &str,
         content_type: Option<&str>,
     ) -> Result<InitiatedVideoUpload, AppError> {
+        debug!(
+            bucket = %self.s3.bucket(),
+            object_key,
+            content_type = content_type.unwrap_or("unknown"),
+            "initiating S3 multipart upload"
+        );
+
         self.s3
             .ensure_bucket_exists()
             .await
@@ -109,6 +125,13 @@ impl VideosRepository for VideoUploadRepository {
             .ok_or_else(|| AppError::Internal("S3 did not return an upload id".to_string()))?
             .to_string();
 
+        info!(
+            bucket = %output.bucket().unwrap_or(self.s3.bucket()),
+            object_key = %output.key().unwrap_or(object_key),
+            upload_id = %upload_id,
+            "S3 multipart upload initiated"
+        );
+
         Ok(InitiatedVideoUpload {
             upload_id,
             bucket: output.bucket().unwrap_or(self.s3.bucket()).to_string(),
@@ -123,6 +146,16 @@ impl VideosRepository for VideoUploadRepository {
         part_number: i32,
         bytes: Vec<u8>,
     ) -> Result<String, AppError> {
+        let size_bytes = bytes.len();
+        debug!(
+            bucket = %self.s3.bucket(),
+            object_key,
+            upload_id,
+            part_number,
+            size_bytes,
+            "sending upload part to S3"
+        );
+
         let output = self
             .s3
             .get_client()
@@ -136,10 +169,22 @@ impl VideosRepository for VideoUploadRepository {
             .await
             .map_err(|err| Self::map_storage_error("upload video part", err))?;
 
-        output
+        let etag = output
             .e_tag()
             .map(str::to_string)
-            .ok_or_else(|| AppError::Internal("S3 did not return an ETag".to_string()))
+            .ok_or_else(|| AppError::Internal("S3 did not return an ETag".to_string()))?;
+
+        info!(
+            bucket = %self.s3.bucket(),
+            object_key,
+            upload_id,
+            part_number,
+            size_bytes,
+            etag = %etag,
+            "S3 upload part completed"
+        );
+
+        Ok(etag)
     }
 
     async fn list_uploaded_parts(
@@ -147,6 +192,13 @@ impl VideosRepository for VideoUploadRepository {
         object_key: &str,
         upload_id: &str,
     ) -> Result<Vec<UploadedVideoPart>, AppError> {
+        debug!(
+            bucket = %self.s3.bucket(),
+            object_key,
+            upload_id,
+            "listing S3 multipart upload parts"
+        );
+
         let output = self
             .s3
             .get_client()
@@ -171,6 +223,15 @@ impl VideosRepository for VideoUploadRepository {
             .collect::<Vec<_>>();
         parts.sort_by_key(|part| part.part_number);
 
+        info!(
+            bucket = %self.s3.bucket(),
+            object_key,
+            upload_id,
+            part_count = parts.len(),
+            uploaded_bytes = parts.iter().map(|part| part.size_bytes).sum::<i64>(),
+            "S3 multipart upload parts listed"
+        );
+
         Ok(parts)
     }
 
@@ -180,6 +241,15 @@ impl VideosRepository for VideoUploadRepository {
         upload_id: &str,
         parts: Vec<CompletedPart>,
     ) -> Result<CompletedVideoUpload, AppError> {
+        let part_count = parts.len();
+        debug!(
+            bucket = %self.s3.bucket(),
+            object_key,
+            upload_id,
+            part_count,
+            "completing S3 multipart upload"
+        );
+
         let multipart_upload = CompletedMultipartUpload::builder()
             .set_parts(Some(parts))
             .build();
@@ -196,6 +266,15 @@ impl VideosRepository for VideoUploadRepository {
             .await
             .map_err(|err| Self::map_storage_error("complete multipart upload", err))?;
 
+        info!(
+            bucket = %output.bucket().unwrap_or(self.s3.bucket()),
+            object_key = %output.key().unwrap_or(object_key),
+            upload_id,
+            part_count,
+            etag = output.e_tag().unwrap_or("unknown"),
+            "S3 multipart upload completed"
+        );
+
         Ok(CompletedVideoUpload {
             bucket: output.bucket().unwrap_or(self.s3.bucket()).to_string(),
             object_key: output.key().unwrap_or(object_key).to_string(),
@@ -208,6 +287,13 @@ impl VideosRepository for VideoUploadRepository {
         object_key: &str,
         upload_id: &str,
     ) -> Result<(), AppError> {
+        debug!(
+            bucket = %self.s3.bucket(),
+            object_key,
+            upload_id,
+            "aborting S3 multipart upload"
+        );
+
         self.s3
             .get_client()
             .abort_multipart_upload()
@@ -217,6 +303,13 @@ impl VideosRepository for VideoUploadRepository {
             .send()
             .await
             .map_err(|err| Self::map_storage_error("abort multipart upload", err))?;
+
+        info!(
+            bucket = %self.s3.bucket(),
+            object_key,
+            upload_id,
+            "S3 multipart upload aborted"
+        );
 
         Ok(())
     }

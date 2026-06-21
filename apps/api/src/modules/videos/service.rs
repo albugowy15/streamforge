@@ -9,6 +9,7 @@ use aws_sdk_s3::types::CompletedPart;
 use super::models::CreateVideoRequest;
 use super::repository::VideosRepository;
 use std::sync::Arc;
+use tracing::{debug, info, warn};
 
 const RECOMMENDED_PART_SIZE_BYTES: u64 = 8 * 1024 * 1024;
 
@@ -23,12 +24,28 @@ impl VideosService {
 
     pub async fn create(&self, req: CreateVideoRequest) -> Result<CreateVideoResponse, AppError> {
         let content_type = req.content_type.clone();
+        info!(
+            title = %req.title,
+            categories = req.categories.len(),
+            content_type = content_type.as_deref().unwrap_or("unknown"),
+            "creating video metadata and starting resumable upload"
+        );
+
         let video_id = self.repository.insert(req.into()).await?;
         let object_key = Self::source_object_key(&video_id);
         let upload = self
             .repository
             .initiate_multipart_upload(&object_key, content_type.as_deref())
             .await?;
+
+        info!(
+            video_id = %video_id,
+            upload_id = %upload.upload_id,
+            bucket = %upload.bucket,
+            object_key = %upload.object_key,
+            recommended_part_size_bytes = RECOMMENDED_PART_SIZE_BYTES,
+            "resumable upload session started"
+        );
 
         Ok(CreateVideoResponse {
             video_id,
@@ -50,6 +67,12 @@ impl VideosService {
         Self::validate_part_number(part_number)?;
 
         if bytes.is_empty() {
+            warn!(
+                video_id = %video_id,
+                upload_id = %upload_id,
+                part_number,
+                "rejecting empty video upload part"
+            );
             return Err(AppError::BadRequest(
                 "video part body cannot be empty".to_string(),
             ));
@@ -57,10 +80,28 @@ impl VideosService {
 
         let size_bytes = bytes.len();
         let object_key = Self::source_object_key(&video_id);
+        debug!(
+            video_id = %video_id,
+            upload_id = %upload_id,
+            object_key = %object_key,
+            part_number,
+            size_bytes,
+            "uploading video part"
+        );
+
         let etag = self
             .repository
             .upload_part(&object_key, &upload_id, part_number, bytes)
             .await?;
+
+        info!(
+            video_id = %video_id,
+            upload_id = %upload_id,
+            part_number,
+            size_bytes,
+            etag = %etag,
+            "video part uploaded"
+        );
 
         Ok(UploadVideoPartResponse {
             video_id,
@@ -79,17 +120,30 @@ impl VideosService {
         Self::validate_upload_id(&upload_id)?;
 
         let object_key = Self::source_object_key(&video_id);
+        debug!(
+            video_id = %video_id,
+            upload_id = %upload_id,
+            object_key = %object_key,
+            "fetching upload status"
+        );
+
         let uploaded_parts = self
             .repository
             .list_uploaded_parts(&object_key, &upload_id)
             .await?;
 
-        Ok(Self::build_upload_status(
-            video_id,
-            upload_id,
-            object_key,
-            uploaded_parts,
-        ))
+        let status = Self::build_upload_status(video_id, upload_id, object_key, uploaded_parts);
+
+        info!(
+            video_id = %status.video_id,
+            upload_id = %status.upload_id,
+            uploaded_parts = status.uploaded_parts.len(),
+            uploaded_bytes = status.uploaded_bytes,
+            next_part_number = status.next_part_number,
+            "upload status fetched"
+        );
+
+        Ok(status)
     }
 
     pub async fn complete_upload(
@@ -100,9 +154,22 @@ impl VideosService {
         Self::validate_upload_id(&req.upload_id)?;
 
         let object_key = Self::source_object_key(&video_id);
+        info!(
+            video_id = %video_id,
+            upload_id = %req.upload_id,
+            object_key = %object_key,
+            request_includes_parts = req.parts.is_some(),
+            "completing video upload"
+        );
+
         let parts = match req.parts {
             Some(parts) => Self::complete_parts_from_request(parts)?,
             None => {
+                debug!(
+                    video_id = %video_id,
+                    upload_id = %req.upload_id,
+                    "completion request omitted parts; listing uploaded parts from storage"
+                );
                 let uploaded_parts = self
                     .repository
                     .list_uploaded_parts(&object_key, &req.upload_id)
@@ -110,11 +177,21 @@ impl VideosService {
                 Self::complete_parts_from_uploaded(uploaded_parts)?
             }
         };
+        let part_count = parts.len();
 
         let completed = self
             .repository
             .complete_multipart_upload(&object_key, &req.upload_id, parts)
             .await?;
+
+        info!(
+            video_id = %video_id,
+            upload_id = %req.upload_id,
+            bucket = %completed.bucket,
+            object_key = %completed.object_key,
+            part_count,
+            "video upload completed"
+        );
 
         Ok(CompleteVideoUploadResponse {
             video_id,
@@ -133,9 +210,23 @@ impl VideosService {
         Self::validate_upload_id(&upload_id)?;
 
         let object_key = Self::source_object_key(&video_id);
+        warn!(
+            video_id = %video_id,
+            upload_id = %upload_id,
+            object_key = %object_key,
+            "aborting video upload"
+        );
+
         self.repository
             .abort_multipart_upload(&object_key, &upload_id)
             .await?;
+
+        info!(
+            video_id = %video_id,
+            upload_id = %upload_id,
+            object_key = %object_key,
+            "video upload aborted"
+        );
 
         Ok(AbortVideoUploadResponse {
             video_id,
@@ -151,6 +242,7 @@ impl VideosService {
 
     fn validate_upload_id(upload_id: &str) -> Result<(), AppError> {
         if upload_id.trim().is_empty() {
+            warn!("rejecting upload request without upload_id");
             return Err(AppError::BadRequest("upload_id is required".to_string()));
         }
         Ok(())
@@ -158,6 +250,7 @@ impl VideosService {
 
     fn validate_part_number(part_number: i32) -> Result<(), AppError> {
         if !(1..=10_000).contains(&part_number) {
+            warn!(part_number, "rejecting invalid video upload part number");
             return Err(AppError::BadRequest(
                 "part_number must be between 1 and 10000".to_string(),
             ));
@@ -193,6 +286,7 @@ impl VideosService {
         parts: Vec<CompleteVideoPartRequest>,
     ) -> Result<Vec<CompletedPart>, AppError> {
         if parts.is_empty() {
+            warn!("rejecting complete upload request without parts");
             return Err(AppError::BadRequest(
                 "at least one uploaded part is required to complete an upload".to_string(),
             ));
@@ -205,6 +299,10 @@ impl VideosService {
             .map(|part| {
                 Self::validate_part_number(part.part_number)?;
                 if part.etag.trim().is_empty() {
+                    warn!(
+                        part_number = part.part_number,
+                        "rejecting complete upload request with empty part etag"
+                    );
                     return Err(AppError::BadRequest("part etag is required".to_string()));
                 }
                 Ok(CompletedPart::builder()
@@ -219,6 +317,7 @@ impl VideosService {
         parts: Vec<UploadedVideoPart>,
     ) -> Result<Vec<CompletedPart>, AppError> {
         if parts.is_empty() {
+            warn!("cannot complete upload because storage returned no uploaded parts");
             return Err(AppError::BadRequest(
                 "no uploaded parts found for upload_id".to_string(),
             ));

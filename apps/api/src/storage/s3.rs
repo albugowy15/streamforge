@@ -4,6 +4,7 @@ use aws_sdk_s3::{
     Client,
     config::{Credentials, Region},
 };
+use tracing::{debug, info};
 
 use crate::config::Config;
 
@@ -14,6 +15,13 @@ pub struct S3 {
 
 impl S3 {
     pub async fn new(config: &Config) -> Self {
+        debug!(
+            region = %config.region,
+            endpoint_url = %config.endpoint_url,
+            bucket = %config.bucket,
+            "configuring S3-compatible client"
+        );
+
         let credentials = Credentials::new(
             &config.access_key_id,
             &config.secret_access_key,
@@ -46,6 +54,8 @@ impl S3 {
     }
 
     pub async fn ensure_bucket_exists(&self) -> anyhow::Result<()> {
+        debug!(bucket = %self.bucket, "checking S3 bucket");
+
         if self
             .client
             .head_bucket()
@@ -54,8 +64,11 @@ impl S3 {
             .await
             .is_ok()
         {
+            debug!(bucket = %self.bucket, "S3 bucket already exists");
             return Ok(());
         }
+
+        info!(bucket = %self.bucket, "S3 bucket missing; creating it");
 
         self.client
             .create_bucket()
@@ -63,6 +76,8 @@ impl S3 {
             .send()
             .await
             .with_context(|| format!("failed to create S3 bucket {}", self.bucket))?;
+
+        info!(bucket = %self.bucket, "S3 bucket created");
 
         Ok(())
     }
