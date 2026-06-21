@@ -11,12 +11,13 @@
     "gen": "node ./dist/index.js"
   },
   "devDependencies": {
-    "tsdown": "^0.22.0"
+    "tsdown": "^0.22.2"
   },
   "dependencies": {
-    "@effect/cli": "^0.75.1",
+    "@effect/cluster": "0.59.0",
+    "@effect/cli": "^0.75.2",
     "@effect/platform": "^0.96.1",
-    "@effect/platform-node": "^0.106.0",
-    "effect": "^3.21.2"
+    "@effect/platform-node": "^0.107.0",
+    "effect": "^3.21.3"
   }
 }

@@ -9,12 +9,8 @@
         "command": "cargo build --release",
         "cwd": "apps/api"
       },
-      "outputs": ["{workspaceRoot}/target/release/streamforge_api"],
-      "inputs": [
-        "{projectRoot}/src/**/*",
-        "{projectRoot}/Cargo.toml",
-        "{workspaceRoot}/Cargo.lock"
-      ]
+      "outputs": ["{projectRoot}/target/release/streamforge_api"],
+      "inputs": ["default", "{projectRoot}/Cargo.toml", "{projectRoot}/Cargo.lock"]
     },
     "dev": {
       "executor": "nx:run-commands",

@@ -59,6 +59,12 @@ pnpm nx run @streamforge/api:dev
 pnpm nx run @streamforge/web:dev
 ```
 
+If Nx fails with plugin-worker connection errors in a sandboxed environment, disable plugin isolation for that command:
+
+```bash
+NX_ISOLATE_PLUGINS=false pnpm nx run @streamforge/web:dev
+```
+
 ## Local Infrastructure
 
 The project is designed to run locally with Docker:
