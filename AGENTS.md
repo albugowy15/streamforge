@@ -51,10 +51,10 @@ The API is a Rust 2024 project using Axum, Tokio, SQLx/PostgreSQL, S3-compatible
 
 Video uploads use S3 multipart upload against RustFS for resumability:
 
-- `POST /api/v1/videos` stores video metadata and starts a multipart upload. The response includes `video_id`, `upload_id`, `bucket`, `object_key`, and `recommended_part_size_bytes`.
+- `POST /api/v1/videos` stores video metadata and starts a multipart upload. The response includes `video_id`, `upload_id`, and `recommended_part_size_bytes`. `content_type` is optional but, when present, must be one of `video/mp4`, `video/webm`, `video/ogg`, `video/quicktime`, `video/x-msvideo`, `video/x-matroska`, or `video/mp2t`.
 - `PUT /api/v1/videos/{id}/parts/{part_number}?upload_id=...` uploads one raw video chunk. Part numbers must be in the S3 range `1..=10000`; the API currently recommends 8 MiB chunks and allows request bodies up to 64 MiB.
-- `GET /api/v1/videos/{id}/upload-status?upload_id=...` lists uploaded parts and total uploaded bytes so the web app can resume after interruption.
-- `POST /api/v1/videos/{id}/complete-upload` completes the multipart upload. If the request omits parts, the API lists uploaded parts from S3 and completes with those.
+- `GET /api/v1/videos/{id}/upload-status?upload_id=...` lists uploaded parts and total uploaded bytes so the web app can resume after interruption. `upload_id` must be non-empty after trimming whitespace.
+- `POST /api/v1/videos/{id}/complete-upload` completes the multipart upload. If the request omits parts, the API lists uploaded parts from S3 and completes with those. When `parts` is provided, it must be non-empty; each part must include `part_number` in `1..=10000` and a non-empty trimmed `etag`.
 - `DELETE /api/v1/videos/{id}/upload?upload_id=...` aborts an unfinished upload.
 
 Run API-specific tasks through Nx, for example:

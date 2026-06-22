@@ -40,6 +40,7 @@ apps/api/
 - Health endpoint.
 - Video metadata creation with `title`, `description`, `categories`, and `visibility`.
 - Resumable source-video upload using S3 multipart upload against RustFS.
+- Request validation for supported video MIME types, multipart upload IDs, and completion parts.
 - Upload status lookup by S3 `upload_id` for frontend resume support.
 - Upload completion and abort endpoints.
 - Automatic S3 bucket creation for the configured `S3_BUCKET`.
@@ -126,6 +127,16 @@ HTTP/1.1 200 OK
 
 Stores metadata and starts an S3 multipart upload.
 
+Supported `content_type` values:
+
+- `video/mp4`
+- `video/webm`
+- `video/ogg`
+- `video/quicktime`
+- `video/x-msvideo`
+- `video/x-matroska`
+- `video/mp2t`
+
 ```bash
 curl -X POST http://localhost:5000/api/v1/videos \
   -H 'Content-Type: application/json' \
@@ -146,8 +157,6 @@ Response:
   "data": {
     "video_id": "019eea41-c0cb-73d6-b07b-adbe7eb94055",
     "upload_id": "multipart-upload-id",
-    "bucket": "streamforge-videos",
-    "object_key": "videos/019eea41-c0cb-73d6-b07b-adbe7eb94055/source",
     "recommended_part_size_bytes": 8388608
   }
 }
@@ -182,6 +191,8 @@ Response:
 
 Use this after an interruption to determine which parts already reached object storage.
 
+`upload_id` must be non-empty after trimming whitespace.
+
 ```bash
 curl 'http://localhost:5000/api/v1/videos/{video_id}/upload-status?upload_id={upload_id}'
 ```
@@ -193,7 +204,6 @@ Response:
   "data": {
     "video_id": "019eea41-c0cb-73d6-b07b-adbe7eb94055",
     "upload_id": "multipart-upload-id",
-    "object_key": "videos/019eea41-c0cb-73d6-b07b-adbe7eb94055/source",
     "uploaded_parts": [
       {
         "part_number": 1,
@@ -210,6 +220,11 @@ Response:
 ### Complete Upload
 
 Complete the multipart upload after all parts are uploaded. You can provide the uploaded part list explicitly:
+
+- `upload_id` must be non-empty after trimming whitespace.
+- If provided, `parts` must contain at least one entry.
+- Each `part_number` must be in `1..=10000`.
+- Each `etag` must be non-empty after trimming whitespace.
 
 ```bash
 curl -X POST http://localhost:5000/api/v1/videos/{video_id}/complete-upload \
@@ -233,10 +248,7 @@ Response:
 {
   "data": {
     "video_id": "019eea41-c0cb-73d6-b07b-adbe7eb94055",
-    "upload_id": "multipart-upload-id",
-    "bucket": "streamforge-videos",
-    "object_key": "videos/019eea41-c0cb-73d6-b07b-adbe7eb94055/source",
-    "etag": "\"6274c24083c616befe2c724394e04785-2\""
+    "upload_id": "multipart-upload-id"
   }
 }
 ```
@@ -257,7 +269,6 @@ Response:
   "data": {
     "video_id": "019eea41-c0cb-73d6-b07b-adbe7eb94055",
     "upload_id": "multipart-upload-id",
-    "object_key": "videos/019eea41-c0cb-73d6-b07b-adbe7eb94055/source",
     "aborted": true
   }
 }
@@ -265,4 +276,4 @@ Response:
 
 ## Manual Upload Verification
 
-The resumable upload flow has been verified with `apps/api/sample_video.mp4` using `curl`. The object downloaded from RustFS matched the source file byte-for-byte by SHA-256.
+The resumable upload flow has been verified with `apps/api/samples/sample_video.mp4` using `curl`. The current manual check covers create, multipart part upload, upload-status, complete-upload without explicit `parts`, and validation failures for invalid `upload_id` and invalid completion parts.
