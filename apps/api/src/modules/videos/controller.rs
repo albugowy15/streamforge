@@ -5,7 +5,9 @@ use crate::{
     error::AppError,
     json::{AppJson, ValidatedJson},
     modules::videos::models::{
-        AbortVideoUploadResponseJson, CompleteVideoUploadResponseJson, CreateVideoResponseJson,
+        AbortVideoUploadResponseBody, AbortVideoUploadResponseJson,
+        CompleteVideoUploadResponseBody, CompleteVideoUploadResponseJson, CreateVideoResponseBody,
+        CreateVideoResponseJson, UploadVideoPartResponseBody, UploadVideoStatusResponseBody,
         UploadVideoStatusResponseJson,
     },
     query::ValidatedQuery,
@@ -22,7 +24,7 @@ use std::sync::Arc;
     path = "/videos",
     request_body = CreateVideoRequest,
     responses(
-        (status = 200, description = "Video created successfully", body = CreateVideoResponseJson),
+        (status = 200, description = "Video created successfully", body = CreateVideoResponseBody),
         (status = 400, description = "Invalid input")
     ),
     tag = "Videos"
@@ -44,7 +46,7 @@ pub async fn create_video_handler(
     ),
     request_body(content = Vec<u8>, content_type = "application/octet-stream"),
     responses(
-        (status = 200, description = "Part uploaded successfully", body = UploadVideoPartResponseJson),
+        (status = 200, description = "Part uploaded successfully", body = UploadVideoPartResponseBody),
         (status = 400, description = "Invalid upload id, part number, or body")
     ),
     tag = "Videos"
@@ -72,7 +74,7 @@ pub async fn upload_video_part_handler(
         ("upload_id" = String, Query, description = "S3 multipart upload id returned by POST /videos")
     ),
     responses(
-        (status = 200, description = "Upload status retrieved", body = UploadVideoStatusResponseJson)
+        (status = 200, description = "Upload status retrieved", body = UploadVideoStatusResponseBody)
     ),
     tag = "Videos"
 )]
@@ -98,7 +100,7 @@ pub async fn show_upload_status_handler(
     ),
     request_body = CompleteVideoUploadRequest,
     responses(
-        (status = 200, description = "Upload completed successfully", body = CompleteVideoUploadResponseJson),
+        (status = 200, description = "Upload completed successfully", body = CompleteVideoUploadResponseBody),
         (status = 400, description = "Invalid upload id or uploaded parts")
     ),
     tag = "Videos"
@@ -125,7 +127,7 @@ pub async fn complete_video_upload_handler(
         ("upload_id" = String, Query, description = "S3 multipart upload id returned by POST /videos")
     ),
     responses(
-        (status = 200, description = "Upload aborted successfully", body = AbortVideoUploadResponseJson)
+        (status = 200, description = "Upload aborted successfully", body = AbortVideoUploadResponseBody)
     ),
     tag = "Videos"
 )]

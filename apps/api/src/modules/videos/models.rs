@@ -141,6 +141,31 @@ pub struct AbortVideoUploadResponse {
     pub aborted: bool,
 }
 
+#[derive(Debug, Serialize, ToSchema)]
+pub struct CreateVideoResponseBody {
+    pub data: CreateVideoResponse,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct UploadVideoPartResponseBody {
+    pub data: UploadVideoPartResponse,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct UploadVideoStatusResponseBody {
+    pub data: UploadVideoStatusResponse,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct CompleteVideoUploadResponseBody {
+    pub data: CompleteVideoUploadResponse,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct AbortVideoUploadResponseBody {
+    pub data: AbortVideoUploadResponse,
+}
+
 pub type CreateVideoResponseJson = AppJson<JsonData<CreateVideoResponse>>;
 pub type UploadVideoPartResponseJson = AppJson<JsonData<UploadVideoPartResponse>>;
 pub type UploadVideoStatusResponseJson = AppJson<JsonData<UploadVideoStatusResponse>>;
