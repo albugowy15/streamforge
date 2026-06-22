@@ -8,11 +8,12 @@ use crate::{
         AbortVideoUploadResponseJson, CompleteVideoUploadResponseJson, CreateVideoResponseJson,
         UploadVideoStatusResponseJson,
     },
+    query::ValidatedQuery,
     state::AppState,
 };
 use axum::{
     body::Bytes,
-    extract::{Path, Query, State},
+    extract::{Path, State},
 };
 use std::sync::Arc;
 
@@ -51,7 +52,7 @@ pub async fn create_video_handler(
 pub async fn upload_video_part_handler(
     State(state): State<Arc<AppState>>,
     Path((id, part_number)): Path<(String, i32)>,
-    Query(query): Query<UploadVideoQuery>,
+    ValidatedQuery(query): ValidatedQuery<UploadVideoQuery>,
     body: Bytes,
 ) -> Result<UploadVideoPartResponseJson, AppError> {
     Ok(AppJson(
@@ -78,7 +79,7 @@ pub async fn upload_video_part_handler(
 pub async fn show_upload_status_handler(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
-    Query(query): Query<UploadVideoQuery>,
+    ValidatedQuery(query): ValidatedQuery<UploadVideoQuery>,
 ) -> Result<UploadVideoStatusResponseJson, AppError> {
     Ok(AppJson(
         state
@@ -131,7 +132,7 @@ pub async fn complete_video_upload_handler(
 pub async fn abort_video_upload_handler(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
-    Query(query): Query<UploadVideoQuery>,
+    ValidatedQuery(query): ValidatedQuery<UploadVideoQuery>,
 ) -> Result<AbortVideoUploadResponseJson, AppError> {
     Ok(AppJson(
         state

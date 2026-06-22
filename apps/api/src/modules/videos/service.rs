@@ -23,7 +23,7 @@ impl VideosService {
     }
 
     pub async fn create(&self, req: CreateVideoRequest) -> Result<CreateVideoResponse, AppError> {
-        let content_type = req.content_type.clone();
+        let content_type = req.content_type.map(|value| value.to_string());
         info!(
             title = %req.title,
             categories = req.categories.len(),
@@ -50,8 +50,6 @@ impl VideosService {
         Ok(CreateVideoResponse {
             video_id,
             upload_id: upload.upload_id,
-            bucket: upload.bucket,
-            object_key: upload.object_key,
             recommended_part_size_bytes: RECOMMENDED_PART_SIZE_BYTES,
         })
     }
@@ -132,7 +130,7 @@ impl VideosService {
             .list_uploaded_parts(&object_key, &upload_id)
             .await?;
 
-        let status = Self::build_upload_status(video_id, upload_id, object_key, uploaded_parts);
+        let status = Self::build_upload_status(video_id, upload_id, uploaded_parts);
 
         info!(
             video_id = %status.video_id,
@@ -196,9 +194,6 @@ impl VideosService {
         Ok(CompleteVideoUploadResponse {
             video_id,
             upload_id: req.upload_id,
-            bucket: completed.bucket,
-            object_key: completed.object_key,
-            etag: completed.etag,
         })
     }
 
@@ -231,7 +226,6 @@ impl VideosService {
         Ok(AbortVideoUploadResponse {
             video_id,
             upload_id,
-            object_key,
             aborted: true,
         })
     }
@@ -261,7 +255,6 @@ impl VideosService {
     fn build_upload_status(
         video_id: String,
         upload_id: String,
-        object_key: String,
         uploaded_parts: Vec<UploadedVideoPart>,
     ) -> UploadVideoStatusResponse {
         let uploaded_bytes = uploaded_parts.iter().map(|part| part.size_bytes).sum();
@@ -275,7 +268,6 @@ impl VideosService {
         UploadVideoStatusResponse {
             video_id,
             upload_id,
-            object_key,
             uploaded_parts,
             uploaded_bytes,
             next_part_number,
@@ -339,7 +331,7 @@ impl VideosService {
 mod tests {
     use super::*;
     use crate::modules::videos::models::{
-        CompletedVideoUpload, InitiatedVideoUpload, Video, Visibility,
+        CompletedVideoUpload, InitiatedVideoUpload, Video, VideoContentType, Visibility,
     };
     use async_trait::async_trait;
 
@@ -473,7 +465,7 @@ mod tests {
             visibility: Visibility::Public,
             categories: vec!["action".to_string(), "comedy".to_string()],
             file_name: Some("sample.mp4".to_string()),
-            content_type: Some("video/mp4".to_string()),
+            content_type: Some(VideoContentType::Mp4),
         }
     }
 
@@ -485,7 +477,6 @@ mod tests {
         let res = service.create(valid_create_request()).await.unwrap();
         assert_eq!(res.video_id, "test-uuid-123");
         assert_eq!(res.upload_id, "upload-123");
-        assert_eq!(res.object_key, "videos/test-uuid-123/source");
         assert_eq!(res.recommended_part_size_bytes, 8 * 1024 * 1024);
     }
 
@@ -559,7 +550,7 @@ mod tests {
         let repo = Arc::new(MockVideosRepository);
         let service = VideosService::new(repo);
 
-        let res = service
+        service
             .complete_upload(
                 "video-1".to_string(),
                 CompleteVideoUploadRequest {
@@ -569,10 +560,6 @@ mod tests {
             )
             .await
             .unwrap();
-
-        assert_eq!(res.bucket, "streamforge");
-        assert_eq!(res.object_key, "videos/video-1/source");
-        assert_eq!(res.etag, Some("complete-etag".to_string()));
     }
 
     #[tokio::test]
@@ -586,6 +573,5 @@ mod tests {
             .unwrap();
 
         assert!(res.aborted);
-        assert_eq!(res.object_key, "videos/video-1/source");
     }
 }
